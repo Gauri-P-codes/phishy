@@ -36,6 +36,20 @@ Only the URL column is used; its precomputed and HTML-based columns are ignored 
 
 Labels are auto-mapped (`phishing/bad/malicious/1` -> 1, `legitimate/benign/good/0` -> 0).
 
+## Evaluation and metric improvements
+
+Training reports now include **accuracy, balanced accuracy, phishing precision/recall/F1, legitimate-class specificity, Matthews correlation coefficient (MCC), ROC-AUC, false positives, false negatives, and a confusion matrix**. These give a fuller picture than accuracy alone, especially when the dataset has uneven class counts.
+
+- **Phishing precision**: of URLs flagged as phishing, how many truly are phishing.
+- **Phishing recall**: of all phishing URLs, how many the detector catches.
+- **Specificity**: of legitimate URLs, how many are correctly left unflagged.
+- **Balanced accuracy**: average recall across the phishing and legitimate classes.
+- **MCC**: a single score that accounts for all four confusion-matrix outcomes.
+
+Additional URL-only signals are now included in feature extraction: punycode, user-info/@ patterns, percent-encoded characters, unusual ports, common URL shorteners, and brand-name impersonation in a subdomain/path. These are heuristics, not proof that a URL is malicious; retrain the model after changing features.
+
+Compare models on the same data split, and use a separate dataset with `--ood-data` when possible. To explore the precision/recall trade-off, retrain with different thresholds (for example `--threshold 0.35`, `0.5`, and `0.65`) and compare the reported metrics. Lower thresholds usually catch more phishing URLs but can increase false alarms. Select the threshold using validation data rather than repeatedly tuning against the final test set.
+
 ## How it works
 ```
 URL -> parse_url (strip scheme + www)        phishy/features.py

@@ -9,8 +9,9 @@ import argparse
 import json
 
 import joblib
-from sklearn.metrics import (accuracy_score, confusion_matrix, f1_score,
-                             precision_score, recall_score, roc_auc_score)
+from sklearn.metrics import (accuracy_score, balanced_accuracy_score, confusion_matrix,
+                             f1_score, matthews_corrcoef, precision_score, recall_score,
+                             roc_auc_score)
 
 import phishy  # noqa: F401  (registers features + models)
 from config import DEFAULT_THRESHOLD, MODEL_PATH
@@ -21,13 +22,20 @@ from phishy.models import MODELS
 
 def metrics(y_true, prob, threshold=DEFAULT_THRESHOLD) -> dict:
     pred = (prob >= threshold).astype(int)
+    cm = confusion_matrix(y_true, pred, labels=[0, 1])
+    tn, fp, fn, tp = cm.ravel()
     return {
         "accuracy": round(accuracy_score(y_true, pred), 4),
-        "precision": round(precision_score(y_true, pred, zero_division=0), 4),
-        "recall": round(recall_score(y_true, pred, zero_division=0), 4),
-        "f1": round(f1_score(y_true, pred, zero_division=0), 4),
+        "balanced_accuracy": round(balanced_accuracy_score(y_true, pred), 4),
+        "precision_phishing": round(precision_score(y_true, pred, zero_division=0), 4),
+        "recall_phishing": round(recall_score(y_true, pred, zero_division=0), 4),
+        "specificity_legitimate": round(tn / max(tn + fp, 1), 4),
+        "f1_phishing": round(f1_score(y_true, pred, zero_division=0), 4),
+        "mcc": round(matthews_corrcoef(y_true, pred), 4),
         "roc_auc": round(roc_auc_score(y_true, prob), 4),
-        "confusion_matrix": confusion_matrix(y_true, pred).tolist(),
+        "false_positives": int(fp),
+        "false_negatives": int(fn),
+        "confusion_matrix": cm.tolist(),
     }
 
 

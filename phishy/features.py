@@ -128,6 +128,39 @@ def host_digits(p): return sum(c.isdigit() for c in p.host)
 def has_ip(p): return 1 if _IP_RE.match(p.host) else 0
 
 @feature()
+def has_punycode(p): return 1 if "xn--" in p.host else 0
+
+@feature()
+def has_at_symbol(p): return 1 if "@" in p.raw else 0
+
+@feature()
+def has_encoded_chars(p): return 1 if re.search(r"%[0-9a-fA-F]{2}", p.full) else 0
+
+@feature()
+def has_nonstandard_port(p):
+    try:
+        raw = p.raw if "://" in p.raw else "//" + p.raw
+        port = urlparse(raw).port
+        return 1 if port is not None and port not in (80, 443) else 0
+    except ValueError:
+        return 1
+
+@feature()
+def is_url_shortener(p):
+    shorteners = {"bit.ly", "tinyurl.com", "t.co", "goo.gl", "ow.ly",
+                  "is.gd", "buff.ly", "rebrand.ly", "cutt.ly", "shorturl.at"}
+    return 1 if p.registered_domain.lower() in shorteners else 0
+
+@feature()
+def brand_impersonation(p):
+    brands = {"paypal", "apple", "microsoft", "google", "amazon", "facebook",
+              "instagram", "netflix", "whatsapp", "linkedin", "dropbox", "adobe",
+              "sbi", "hdfc", "icici", "axisbank"}
+    text = " ".join([p.subdomain, p.path, p.query]).lower()
+    tokens_found = set(tokens(text))
+    return 1 if tokens_found.intersection(brands) and p.registered_domain.split(".")[0].lower() not in brands else 0
+
+@feature()
 def num_subdirs(p): return len([s for s in p.path.split("/") if s])
 
 @feature()
